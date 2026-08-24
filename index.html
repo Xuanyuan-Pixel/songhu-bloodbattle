@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14161c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>淞沪血战 · 外滩1937</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
+html,body{height:100%;overflow:hidden;background:#000;font-family:'PingFang SC','Microsoft YaHei','Noto Sans SC',system-ui,sans-serif;}
+#game{position:fixed;inset:0;touch-action:none;z-index:0;}
+.hudBtn{position:fixed;z-index:10;border:none;border-radius:50%;background:rgba(20,22,30,.72);color:#ffe9b0;font-size:22px;display:flex;align-items:center;justify-content:center;touch-action:none;box-shadow:0 0 0 2px rgba(184,134,11,.45),0 4px 10px rgba(0,0,0,.5);cursor:pointer;}
+.hudBtn:active{transform:scale(.94);background:rgba(60,50,20,.85);}
+#btnPause{top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));width:46px;height:46px;}
+#btnGrenade{bottom:calc(16px + env(safe-area-inset-bottom));right:calc(16px + env(safe-area-inset-right));width:66px;height:66px;font-size:30px;}
+#grenadeCount{position:absolute;top:-6px;right:-6px;background:#b32020;color:#fff;border-radius:10px;font-size:13px;min-width:22px;height:22px;line-height:22px;font-weight:700;text-align:center;padding:0 4px;}
+#btnFire{bottom:calc(26px + env(safe-area-inset-bottom));right:calc(100px + env(safe-area-inset-right));width:80px;height:80px;font-size:20px;font-weight:700;color:#fff;background:rgba(150,32,28,.8);display:none;}
+.overlay{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(8,9,14,.78);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);}
+.overlay.hidden{display:none;}
+#help{z-index:30;}
+.panel{width:min(88vw,430px);max-height:88vh;overflow:auto;background:linear-gradient(180deg,#23262e,#14161c);border:2px solid rgba(184,134,11,.6);border-radius:16px;padding:26px 24px;text-align:center;box-shadow:0 0 40px rgba(0,0,0,.8);}
+h1.title{font-size:44px;color:#ffd75e;text-shadow:0 2px 0 #7a1f1f,0 4px 12px rgba(255,120,0,.35);letter-spacing:6px;margin-bottom:2px;}
+.tag{color:#b8860b;font-size:13px;letter-spacing:3px;margin-bottom:6px;}
+.sub{color:#c9b98a;font-size:15px;margin-bottom:14px;line-height:1.7;}
+.mbtn{display:block;width:100%;margin:10px 0;padding:13px;font-size:18px;font-weight:700;color:#ffe9b0;background:linear-gradient(180deg,#8a2b22,#5e1a14);border:1px solid #b8860b;border-radius:10px;cursor:pointer;letter-spacing:2px;font-family:inherit;}
+.mbtn.small{font-size:15px;padding:10px;background:linear-gradient(180deg,#2c3140,#1c202b);}
+.mbtn:active{transform:scale(.97);filter:brightness(1.15);}
+.info{color:#b9c0cc;font-size:14px;line-height:2;text-align:left;margin:8px 0;}
+.info b{color:#ffd75e;}
+.bigScore{color:#ffd75e;font-size:28px;font-weight:800;margin:8px 0;line-height:1.5;}
+.note{color:#7f8894;font-size:12px;margin-top:12px;line-height:1.7;}
+.bestLine{color:#c9b98a;font-size:15px;margin-bottom:8px;}
+h2.panelTitle{color:#ffd75e;font-size:24px;letter-spacing:4px;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<button id="btnPause" class="hudBtn" style="display:none;">⏸</button>
+<button id="btnGrenade" class="hudBtn" style="display:none;">💣<span id="grenadeCount">0</span></button>
+<button id="btnFire" class="hudBtn">开火</button>
+
+<!-- 主菜单 -->
+<div id="menu" class="overlay">
+  <div class="panel">
+    <div class="tag">—— 淞沪会战 · 1937 ——</div>
+    <h1 class="title">淞沪血战</h1>
+    <div class="sub">外滩保卫战 · 手机版射击游戏<br>仿《血战上海滩》玩法</div>
+    <div class="bestLine" id="menuBest">最佳成绩：0</div>
+    <button class="mbtn" id="btnStart">⚔ 开始战斗</button>
+    <button class="mbtn small" id="btnHelp">❓ 操作说明</button>
+    <button class="mbtn small" id="btnSound">🔊 声音：开</button>
+    <button class="mbtn small" id="btnAuto">自动开火：开</button>
+    <div class="note">建议横屏游玩 · 拖动瞄准，按住开火<br>本游戏为原创致敬作品，无外部素材依赖</div>
+  </div>
+</div>
+
+<!-- 操作说明 -->
+<div id="help" class="overlay hidden">
+  <div class="panel">
+    <h2 class="panelTitle">操作说明</h2>
+    <div class="info">
+      <b>🎯 瞄准</b>：手指（或鼠标）在屏幕上拖动，准星跟随移动<br>
+      <b>🔫 开火</b>：按住屏幕持续射击（可在菜单切换为手动开火按钮）<br>
+      <b>💣 手雷</b>：点击右下角手雷按钮，投掷到准星位置<br>
+      <b>💥 爆头</b>：命中敌人头部造成双倍伤害<br>
+      <b>🛡 拦截</b>：敌人的子弹和手雷可以被击落！<br>
+      <b>🔁 换弹</b>：弹药耗尽自动换弹，也可手动换弹<br>
+      <b>🎁 战利品</b>：击杀敌人掉落补给，会自动飘向你<br>
+      <b>⌨️ 桌面键位</b>：R 换弹 / G 手雷 / P 暂停 / M 声音
+    </div>
+    <button class="mbtn small" id="btnHelpBack">返回</button>
+  </div>
+</div>
+
+<!-- 关卡开始 -->
+<div id="intro" class="overlay hidden">
+  <div class="panel">
+    <div class="tag">—— 战斗指令 ——</div>
+    <h1 class="title" id="introTitle" style="font-size:32px;letter-spacing:3px;">第一关</h1>
+    <div class="sub" id="introSub"></div>
+    <button class="mbtn" id="btnIntroStart">▶ 开始战斗</button>
+  </div>
+</div>
+
+<!-- 过关 -->
+<div id="clear" class="overlay hidden">
+  <div class="panel">
+    <h2 class="panelTitle" id="clearTitle">第 1 关完成</h2>
+    <div class="bigScore" id="clearScore">得分：0</div>
+    <button class="mbtn" id="btnClearNext">下一关 ▶</button>
+  </div>
+</div>
+
+<!-- 战败 -->
+<div id="over" class="overlay hidden">
+  <div class="panel">
+    <h2 class="panelTitle" style="color:#ff5540;">阵地失守…</h2>
+    <div class="bigScore" id="overScore">得分：0</div>
+    <button class="mbtn" id="btnRetry">🔄 重新战斗</button>
+    <button class="mbtn small" id="btnMenu2">返回主菜单</button>
+  </div>
+</div>
+
+<!-- 胜利 -->
+<div id="win" class="overlay hidden">
+  <div class="panel">
+    <div class="tag">—— 上海保卫战 ——</div>
+    <h2 class="panelTitle" style="color:#ffd75e;">胜利！</h2>
+    <div class="bigScore" id="winScore">得分：0</div>
+    <button class="mbtn" id="btnAgain">⚔ 再战一轮</button>
+    <button class="mbtn small" id="btnMenu3">返回主菜单</button>
+  </div>
+</div>
+
+<!-- 暂停 -->
+<div id="pause" class="overlay hidden">
+  <div class="panel">
+    <h2 class="panelTitle">已暂停</h2>
+    <button class="mbtn" id="btnResume">▶ 继续战斗</button>
+    <button class="mbtn small" id="btnRestart">🔄 重新开始本关</button>
+    <button class="mbtn small" id="btnMenuP">返回主菜单</button>
+  </div>
+</div>
+
+<script src="game.js" onerror="var d=document.createElement('div');d.style.cssText='position:fixed;left:0;top:0;right:0;z-index:999;background:#14161c;color:#ff6a5e;font:14px/1.8 sans-serif;padding:20px;';d.textContent='无法加载 game.js：请确认它与 index.html 在同一个文件夹，并通过 HTTP 服务器访问（详见 README）。';document.body.appendChild(d);"></script>
+<script>
+window.addEventListener('error', function (e) {
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;left:0;top:0;right:0;z-index:998;background:rgba(20,22,28,.92);color:#ffd75e;font:12px/1.6 monospace;padding:14px 20px;white-space:pre-wrap;word-break:break-all;pointer-events:none;';
+  d.textContent = '运行时错误：' + (e.message || e.type) + ' @ ' + (e.filename ? e.filename.split('/').pop() + ':' + e.lineno : '');
+  document.body.appendChild(d);
+  setTimeout(function () { d.remove(); }, 6000);
+});
+// 注册离线缓存（需 HTTPS 或 localhost；失败时静默忽略，游戏照常在线运行）
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
